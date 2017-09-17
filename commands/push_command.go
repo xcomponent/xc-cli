@@ -1,41 +1,26 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"fmt"
 	"os"
 	"strings"
-	"xcomponent.com/xc/cli"
+	"xcomponent.com/xc/service"
 )
 
 type PushCommand struct {
-	BucketName string
+	ComponentService *service.ComponentServiceOp
 }
 
-func (pushCommand PushCommand) Execute(args []string, s3 *s3.S3) error {
-	pushParams, err := parseParams(args)
+func (pushCommand PushCommand) Execute(args []string) error {
+	pushParams, err := loadPushParams(args)
 
 	if err != nil {
 		return err
 	}
 
-	uploader := s3manager.NewUploaderWithClient(s3)
-
-	file, err := os.Open(pushParams.filePath)
-
-	if err != nil {
-		return nil
-	}
-
-	key := pushParams.componentName + "-" + pushParams.label
-
-	// Perform an upload.
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: &pushCommand.BucketName,
-		Key:    &key,
-		Body:   file,
-	})
+	_, err = pushCommand.ComponentService.Upload(pushParams.componentName, pushParams.label, pushParams.filePath)
 
 	return err
 }
@@ -46,9 +31,10 @@ type PushParams struct {
 	filePath      string
 }
 
-func parseParams(args []string) (*PushParams, error) {
-	if len(args) != 2 {
-		return nil, errors.New("\"" + cli.Command + " push\" requires two arguments.")
+func loadPushParams(args []string) (*PushParams, error) {
+	argsLength := len(args)
+	if argsLength != 2 {
+		return nil, errors.New(fmt.Sprintf("Invalid parameters specified.\n%s", printPushUsage()))
 	}
 
 	componentNameAndLabel := strings.Split(args[0], ":")
@@ -69,4 +55,14 @@ func parseParams(args []string) (*PushParams, error) {
 	}
 
 	return &PushParams{componentName, label, filePath}, nil
+}
+
+func printPushUsage() string {
+	var buffer bytes.Buffer
+
+	buffer.WriteString("\n")
+	buffer.WriteString("Usage: xc push COMPONENT-NAME[:LABEL] COMPONENT-PATH\n")
+	buffer.WriteString("\n")
+
+	return buffer.String()
 }

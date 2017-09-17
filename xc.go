@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"os"
+	"xcomponent.com/xc/cli"
 	"xcomponent.com/xc/commands"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"xcomponent.com/xc/service"
 )
 
 const (
@@ -18,44 +18,49 @@ func main() {
 	argsWithoutProg := os.Args[1:]
 
 	if len(argsWithoutProg) == 0 {
-		fmt.Printf("Please specify an argument.\n")
-
-		return
+		log.Fatalf("Please specify an argument.\n%s", buildUsage())
 	}
 
 	commandName := argsWithoutProg[0]
 
-	commands := map[string]commands.Command{
-		"push": commands.PushCommand{"xc-cloud-dev"},
+	config, err := cli.LoadConfig()
+
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	command := commands[commandName]
+	componentService := service.NewComponentService(config.ServerUrl)
+	service := commands.NewCommandService(config.ServerUrl)
+
+	command := map[string]commands.Command{
+		"push": commands.PushCommand{ComponentService: componentService},
+		"run":  commands.RunCommand{Service: service},
+		"logs":  commands.LogsCommand{Service: service},
+	}[commandName]
 
 	if command != nil {
-		awsSession, err := NewAwsSession()
+		err := command.Execute(argsWithoutProg[1:])
 
-		if err == nil {
-			err := command.Execute(argsWithoutProg[1:], s3.New(awsSession))
-
-			if err != nil {
-				fmt.Printf("Error : %s\n", err)
-			}else {
-				fmt.Printf("Uploaded component to AWS.\n")
-			}
-
-		} else {
-			fmt.Printf("Error while connecting to AWS %s\n", err)
-
-			return
+		if err != nil {
+			fmt.Printf("Error : %s\n", err)
 		}
 	} else {
-		fmt.Printf("Invalid argument %s\n", commandName)
+		log.Fatalf("Invalid command.\n%s", buildUsage())
 	}
 }
 
-func NewAwsSession() (*session.Session, error) {
-	return session.NewSession(&aws.Config{
-		Region:      aws.String("eu-west-1"),
-		Credentials: credentials.NewSharedCredentials("", "xc-cloud"),
-	})
+func buildUsage() string {
+	var buffer bytes.Buffer
+
+	buffer.WriteString("\n")
+	buffer.WriteString("Usage : " + cli.Command + " COMMAND\n")
+	buffer.WriteString("\n")
+	buffer.WriteString("A command line interface for XComponent Cloud Platform\n")
+	buffer.WriteString("\n")
+	buffer.WriteString("Commands:\n")
+	buffer.WriteString("	 push      Upload an XC component to XC Cloud Platform\n")
+	buffer.WriteString("	 run       Launch a component stack based on docker-compose\n")
+	buffer.WriteString("	 logs      Access the logs of a service instance\n")
+
+	return buffer.String()
 }

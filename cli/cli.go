@@ -1,3 +1,6 @@
 package cli
 
-const Command = "xc"
+const (
+	Command      = "xc"
+	SettingsFile = ".xc"
+)
