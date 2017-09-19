@@ -1,0 +1,6 @@
+{
+  "xcStudioDistrib" : {
+    "x86" : "https://github.com/xcomponent/xcomponent/releases/download/4.6.5/XComponentCommunity-4.6.5-G9_x86.msi"
+    "x64" : "https://github.com/xcomponent/xcomponent/releases/download/4.6.5/XComponentCommunity-4.6.5-G9_x64.msi  "
+  }
+}
