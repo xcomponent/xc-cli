@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"xcomponent.com/xc/service"
+	"github.com/xcomponent/xc-cli/service"
 )
 
 type PushCommand struct {

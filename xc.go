@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"xcomponent.com/xc/cli"
-	"xcomponent.com/xc/commands"
-	"xcomponent.com/xc/service"
+	"github.com/xcomponent/xc-cli/cli"
+	"github.com/xcomponent/xc-cli/commands"
+	"github.com/xcomponent/xc-cli/service"
 )
 
 const (
