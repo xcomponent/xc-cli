@@ -4,9 +4,9 @@ import (
 	"errors"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/xcomponent/xc-cli/cli"
 	"os"
 	"strings"
-	"xcomponent.com/xc/cli"
 )
 
 type PushCommand struct {
