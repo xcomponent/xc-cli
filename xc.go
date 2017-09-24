@@ -3,59 +3,36 @@ package main
 import (
 	"fmt"
 	"os"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/xcomponent/xc-cli/commands"
+	xccli "github.com/daniellavoie/xc-cli/cli"
+	"github.com/urfave/cli"
+	"github.com/daniellavoie/xc-cli/commands"
+	"log"
+	"github.com/daniellavoie/xc-cli/service"
 )
 
 const (
-	Command = "xc"
+	Command          = "xc"
+	InstallConfigUrl = "https://raw.githubusercontent.com/daniellavoie/xc-cli/install-config-v1/install-config.json"
 )
 
 func main() {
-	argsWithoutProg := os.Args[1:]
-
-	if len(argsWithoutProg) == 0 {
-		fmt.Printf("Please specify an argument.\n")
-
-		return
+	config, err := xccli.LoadConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	commandName := argsWithoutProg[0]
+	app := cli.NewApp()
+	app.Name = "XC CLI"
+	app.Usage = "XComponent Command Line Interface"
+	app.Version = "0.1.0"
 
-	commands := map[string]commands.Command{
-		"push": commands.PushCommand{"xc-cloud-dev"},
+	app.Commands = commands.GetCommands(InstallConfigUrl, service.NewCloudPlatformService(config.ServerUrl))
+
+	err = app.Run(os.Args)
+	if err != nil {
+		fmt.Printf("Error : %s\n", err)
+		os.Exit(1)
 	}
 
-	command := commands[commandName]
-
-	if command != nil {
-		awsSession, err := NewAwsSession()
-
-		if err == nil {
-			err := command.Execute(argsWithoutProg[1:], s3.New(awsSession))
-
-			if err != nil {
-				fmt.Printf("Error : %s\n", err)
-			}else {
-				fmt.Printf("Uploaded component to AWS.\n")
-			}
-
-		} else {
-			fmt.Printf("Error while connecting to AWS %s\n", err)
-
-			return
-		}
-	} else {
-		fmt.Printf("Invalid argument %s\n", commandName)
-	}
-}
-
-func NewAwsSession() (*session.Session, error) {
-	return session.NewSession(&aws.Config{
-		Region:      aws.String("eu-west-1"),
-		Credentials: credentials.NewSharedCredentials("", "xc-cloud"),
-	})
+	os.Exit(0)
 }
