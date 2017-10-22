@@ -3,9 +3,14 @@ package commands
 import (
 	"github.com/urfave/cli"
 	"github.com/daniellavoie/xc-cli/service"
+	"os"
+	"strings"
 )
 
-const protocol = "https"
+const (
+	protocol  = "https"
+	githubOrg = "daniellavoie"
+)
 
 func GetCommands(installConfigUrl string, cloudPlatformService service.CloudPlatformService) ([]cli.Command) {
 	return []cli.Command{
@@ -24,6 +29,36 @@ func GetCommands(installConfigUrl string, cloudPlatformService service.CloudPlat
 					c.String("install-config-url"),
 					false,
 					c.Bool("keep-temp-files"))
+			},
+		},
+		{
+			Name:  "init",
+			Usage: "Initialize a new XComponent project",
+			ArgsUsage: "[ORGANIZATION:][TEMPLATE-NAME]",
+			Action: func(c *cli.Context) error {
+				if len(c.Args()) > 1 {
+					cli.ShowCommandHelp(c, "init")
+					os.Exit(1)
+				}
+
+				var githubOrg = githubOrg
+				var templateName = "helloworld"
+				if len(c.Args()) == 1 {
+					templateArg := c.Args().Get(0)
+					i := strings.Index(templateArg, ":")
+					if i != -1 {
+						githubOrg = templateArg[:i]
+						templateName = templateArg[i+1:len(templateArg)]
+					}else {
+						templateName = templateArg
+					}
+				}
+				workDir, err := os.Getwd()
+				if err != nil {
+					return err
+				}
+
+				return Init(workDir, githubOrg, templateName)
 			},
 		},
 		/*{
