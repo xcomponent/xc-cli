@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	xccli "github.com/daniellavoie/xc-cli/cli"
+	xccli "github.com/xcomponent/xc-cli/cli"
 	"github.com/urfave/cli"
-	"github.com/daniellavoie/xc-cli/commands"
+	"github.com/xcomponent/xc-cli/commands"
 	"log"
-	"github.com/daniellavoie/xc-cli/service"
+	"github.com/xcomponent/xc-cli/service"
 )
 
 const (

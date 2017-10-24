@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 	"strings"
-	"github.com/daniellavoie/xc-cli/service"
+	"github.com/xcomponent/xc-cli/service"
 )
 
 type PushRequest struct {

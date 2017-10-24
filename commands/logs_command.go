@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/daniellavoie/xc-cli/service"
+	"github.com/xcomponent/xc-cli/service"
 )
 
 type LogsCommandRequest struct {

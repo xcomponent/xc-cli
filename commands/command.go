@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/urfave/cli"
-	"github.com/daniellavoie/xc-cli/service"
+	"github.com/xcomponent/xc-cli/service"
 	"os"
 	"strings"
 )

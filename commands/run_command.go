@@ -2,7 +2,7 @@ package commands
 
 import (
 	"io/ioutil"
-	"github.com/daniellavoie/xc-cli/service"
+	"github.com/xcomponent/xc-cli/service"
 )
 
 type RunStackRequest struct {
