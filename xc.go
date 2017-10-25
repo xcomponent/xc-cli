@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"github.com/urfave/cli"
 	"github.com/xcomponent/xc-cli/commands"
+	"os"
+	. "github.com/daniellavoie/go-shim/osshim"
+	. "github.com/daniellavoie/go-shim/httpshim"
+	. "github.com/daniellavoie/go-shim/ioshim"
 )
 
 func main() {
@@ -13,7 +16,8 @@ func main() {
 	app.Usage = "XComponent Command Line Interface"
 	app.Version = "0.2.0"
 
-	app.Commands = commands.GetCommands()
+	os.TempDir()
+	app.Commands = commands.GetCommands(new(OsShim), new(HttpShim), new(IoShim))
 
 	err := app.Run(os.Args)
 	if err != nil {

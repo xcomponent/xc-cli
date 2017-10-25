@@ -1,36 +1,36 @@
 package commands
 
 import (
+	. "os"
 	"fmt"
-	"os"
-	"net/http"
-	"io"
 	"errors"
 	"archive/zip"
 	"path/filepath"
 	"strings"
+	io "io"
+	"github.com/daniellavoie/go-shim"
 )
 
-func Init(projectFolder string, githubOrg, templateName string) error {
-	err := prepareProjectFolder(projectFolder)
+func Init(projectFolder string, githubOrg, templateName string, osshim goshim.Os, httpshim goshim.Http, io goshim.Io) error {
+	err := prepareProjectFolder(projectFolder, osshim)
 	if err != nil {
 		return err
 	}
 
-	fileName, err := downloadTemplate(projectFolder, githubOrg, templateName)
-	defer clean(fileName)
+	fileName, err := downloadTemplate(projectFolder, githubOrg, templateName, osshim, httpshim, io)
+	defer clean(fileName, osshim)
 	if err != nil {
 		return err
 	}
 
-	return unzip(fileName, projectFolder)
+	return unzip(fileName, projectFolder, osshim, io)
 }
 
-func prepareProjectFolder(projectFolder string) error {
-	fileInfo, err := os.Stat(projectFolder)
+func prepareProjectFolder(projectFolder string, osshim goshim.Os) error {
+	fileInfo, err := osshim.Stat(projectFolder)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return os.MkdirAll(projectFolder, os.ModeDir)
+		if osshim.IsNotExist(err) {
+			return osshim.MkdirAll(projectFolder, 0700)
 		} else {
 			return err
 		}
@@ -39,7 +39,7 @@ func prepareProjectFolder(projectFolder string) error {
 			return errors.New(fmt.Sprintf("%s is not a directory", projectFolder))
 		}
 
-		empty, err := isEmpty(projectFolder)
+		empty, err := isEmpty(projectFolder, osshim)
 		if err != nil {
 			return err
 		} else if !empty {
@@ -50,8 +50,8 @@ func prepareProjectFolder(projectFolder string) error {
 	return nil
 }
 
-func isEmpty(name string) (bool, error) {
-	f, err := os.Open(name)
+func isEmpty(name string, osshim goshim.Os) (bool, error) {
+	f, err := osshim.Open(name)
 	if err != nil {
 		return false, err
 	}
@@ -64,19 +64,21 @@ func isEmpty(name string) (bool, error) {
 	return false, err // Either not empty or error, suits both cases
 }
 
-func downloadTemplate(projectFolder string, githubOrg string, templateName string) (string, error) {
+func downloadTemplate(projectFolder string, githubOrg string, templateName string, osshim goshim.Os, httpshim goshim.Http, io goshim.Io) (string, error) {
 	fmt.Println("Downloading template")
 
 	fileName := fmt.Sprintf("%s/%s.zip", projectFolder, templateName)
 
-	out, err := os.Create(fileName)
+	out, err := osshim.Create(fileName)
 	defer out.Close()
 	if err != nil {
 		return fileName, err
 	}
 
-	resp, err := http.Get(fmt.Sprintf("https://github.com/%s/%s/archive/master.zip", githubOrg, templateName))
-	defer resp.Body.Close()
+	resp, err := httpshim.Get(fmt.Sprintf("https://github.com/%s/%s/archive/master.zip", githubOrg, templateName))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return fileName, err
 	}
@@ -93,7 +95,7 @@ func downloadTemplate(projectFolder string, githubOrg string, templateName strin
 	return fileName, nil
 }
 
-func unzip(archive string, target string) error {
+func unzip(archive string, target string, osshim goshim.Os, io goshim.Io) error {
 	fmt.Println(fmt.Sprintf("Extracting template from %s", archive))
 
 	reader, err := zip.OpenReader(archive)
@@ -101,12 +103,12 @@ func unzip(archive string, target string) error {
 		return err
 	}
 
-	if err := os.MkdirAll(target, 0755); err != nil {
+	if err := osshim.MkdirAll(target, 0755); err != nil {
 		return err
 	}
 
 	for _, file := range reader.File {
-		err = unzipFile(file, target)
+		err = unzipFile(file, target, osshim, io)
 		if err != nil {
 			return err
 		}
@@ -115,12 +117,12 @@ func unzip(archive string, target string) error {
 	return nil
 }
 
-func unzipFile(file *zip.File, target string) error {
+func unzipFile(file *zip.File, target string, osshim goshim.Os, io goshim.Io) error {
 	fileName := file.Name[strings.Index(file.Name, "/")+1:len(file.Name)]
 
 	path := filepath.Join(target, fileName)
 	if file.FileInfo().IsDir() {
-		os.MkdirAll(path, file.Mode())
+		osshim.MkdirAll(path, file.Mode())
 		return nil
 	}
 
@@ -130,7 +132,7 @@ func unzipFile(file *zip.File, target string) error {
 	}
 	defer fileReader.Close()
 
-	targetFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+	targetFile, err := osshim.OpenFile(path, O_WRONLY|O_CREATE|O_TRUNC, file.Mode())
 	if targetFile != nil {
 		defer targetFile.Close()
 	}
@@ -145,12 +147,12 @@ func unzipFile(file *zip.File, target string) error {
 	return nil
 }
 
-func clean(fileName string) error {
+func clean(fileName string, osshim goshim.Os) error {
 	if fileName == "" {
 		return nil
 	}
 
 	fmt.Println(fmt.Sprintf("Cleaning %s", fileName))
 
-	return os.Remove(fileName)
+	return osshim.Remove(fileName)
 }
