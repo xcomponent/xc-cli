@@ -2,17 +2,18 @@ package commands
 
 import (
 	"github.com/urfave/cli"
-	"github.com/xcomponent/xc-cli/service"
 	"os"
 	"strings"
 )
 
 const (
-	protocol  = "https"
+	installConfigUrl = "https://raw.githubusercontent.com/xcomponent/xc-cli/install-config-v1/install-config.json"
+
 	githubOrg = "daniellavoie"
+
 )
 
-func GetCommands(installConfigUrl string, cloudPlatformService service.CloudPlatformService) ([]cli.Command) {
+func GetCommands() ([]cli.Command) {
 	return []cli.Command{
 		{
 			Name:  "install",
@@ -48,7 +49,7 @@ func GetCommands(installConfigUrl string, cloudPlatformService service.CloudPlat
 					i := strings.Index(templateArg, ":")
 					if i != -1 {
 						githubOrg = templateArg[:i]
-						templateName = templateArg[i+1:len(templateArg)]
+						templateName = templateArg[i+1:]
 					}else {
 						templateName = templateArg
 					}
