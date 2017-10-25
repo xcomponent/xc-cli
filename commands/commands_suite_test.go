@@ -1,12 +1,13 @@
-package main
+package commands_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestXcCli(t *testing.T) {
+func TestCommands(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "XC CLI Tests")
+	RunSpecs(t, "Commands Suite")
 }
