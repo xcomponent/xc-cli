@@ -1,17 +1,16 @@
-rm -rf ./target && \
-  echo "Purging target folder." && \
-  mkdir ./target && \
-  echo "Building XC CLI for multiple platform." && \
-  gox -os="darwin linux windows" -arch="amd64 386" && \
-  echo "Packaging OSX 32 bit distribution." && \
-  cp xc-cli_darwin_386 target/xc | zip -mqj target/xc-osx-32.zip target/xc && \
-  echo "Packaging OSX 64 bit distribution." && \
-  cp xc-cli_darwin_amd64 target/xc | zip -mqj target/xc-osx-64.zip target/xc && \
-  echo "Packaging Linux 32 bit distribution." && \
-  cp xc-cli_linux_386 target/xc | zip -mqj target/xc-linux-32.zip target/xc && \
-  echo "Packaging Linux 64 bit distribution." && \
-  cp xc-cli_linux_amd64 target/xc | zip -mqj target/xc-linux-64.zip target/xc && \
-  echo "Packaging Windows 32 bit distribution." && \
-  cp xc-cli_windows_386.exe target/xc.exe | zip -mqj target/xc-windows-32.zip target/xc.exe && \
-  echo "Packaging Windows 64 bit distribution." && \
-  cp xc-cli_windows_amd64.exe target/xc.exe | zip -mqj target/xc-windows-64.zip target/xc.exe
+if [ $# -eq 0 ]
+  then
+    echo "Tag has not been specified"
+    exit 1
+fi
+
+rm -rf ./dist && \
+  gox -osarch="darwin/amd64 linux/386 linux/amd64 windows/386 windows/amd64" \
+      -output=dist/{{.Dir}}_{{.OS}}_{{.Arch}} && \
+  zip -mqj dist/xc-windows-64.zip dist/xc-cli_windows_amd64.exe && \
+  zip -mqj dist/xc-windows-32.zip dist/xc-cli_windows_386.exe && \
+  zip -mqj dist/xc-linux-32.zip dist/xc-cli_linux_386 && \
+  zip -mqj dist/xc-linux-64.zip dist/xc-cli_linux_amd64 && \
+  zip -mqj dist/xc-macos-64.zip dist/xc-cli_darwin_amd64
+
+ghr -u xcomponent $1 dist/
