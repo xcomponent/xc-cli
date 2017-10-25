@@ -1,6 +1,6 @@
 language: go
 
-sudo: yes
+sudo: required
 
 go:
   - 1.9
