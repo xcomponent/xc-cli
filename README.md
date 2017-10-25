@@ -45,15 +45,16 @@ Install [ghr](https://github.com/tcnksm/ghr)
 
 ```
 $ go get -u github.com/tcnksm/ghr
-``` 
+```
 
 Generate a Github [Personal Access Token](https://github.com/settings/tokens/new) with the `public_repo` scope. Add that token to your git global configuration.
 
 ```
 $ git config --global github.token "....."
-``` 
+```
 
 You can now launch `RELEASE.sh` with the tag version you would like to release.
+
 ```
 $ ./RELEASE.sh 0.2.0
-``` 
+```
