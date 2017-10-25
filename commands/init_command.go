@@ -4,33 +4,47 @@ import (
 	. "os"
 	"fmt"
 	"errors"
-	"archive/zip"
 	"path/filepath"
 	"strings"
-	io "io"
-	"github.com/daniellavoie/go-shim"
+	"github.com/xcomponent/xc-cli/services"
+	"io"
+	"archive/zip"
 )
 
-func Init(projectFolder string, githubOrg, templateName string, osshim goshim.Os, httpshim goshim.Http, io goshim.Io) error {
-	err := prepareProjectFolder(projectFolder, osshim)
-	if err != nil {
-		return err
-	}
-
-	fileName, err := downloadTemplate(projectFolder, githubOrg, templateName, osshim, httpshim, io)
-	defer clean(fileName, osshim)
-	if err != nil {
-		return err
-	}
-
-	return unzip(fileName, projectFolder, osshim, io)
+type InitCommand struct {
+	http services.HttpService
+	io   services.IoService
+	os   services.OsService
+	zip  services.ZipService
 }
 
-func prepareProjectFolder(projectFolder string, osshim goshim.Os) error {
-	fileInfo, err := osshim.Stat(projectFolder)
+func NewInitCommand(http services.HttpService, io services.IoService, os services.OsService,
+	zip services.ZipService) *InitCommand {
+	return &InitCommand{http, io, os, zip}
+}
+
+func (initCommand *InitCommand) Init(projectFolder string, githubOrg, templateName string) error {
+	err := initCommand.prepareProjectFolder(projectFolder)
+
 	if err != nil {
-		if osshim.IsNotExist(err) {
-			return osshim.MkdirAll(projectFolder, 0700)
+		return err
+	}
+
+	fileName, err := initCommand.downloadTemplate(projectFolder, githubOrg, templateName)
+	defer initCommand.clean(fileName)
+
+	if err != nil {
+		return err
+	}
+
+	return initCommand.unzip(fileName, projectFolder)
+}
+
+func (initCommand *InitCommand) prepareProjectFolder(projectFolder string) error {
+	fileInfo, err := initCommand.os.Stat(projectFolder)
+	if err != nil {
+		if initCommand.os.IsNotExist(err) {
+			return initCommand.os.MkdirAll(projectFolder, 0700)
 		} else {
 			return err
 		}
@@ -39,7 +53,7 @@ func prepareProjectFolder(projectFolder string, osshim goshim.Os) error {
 			return errors.New(fmt.Sprintf("%s is not a directory", projectFolder))
 		}
 
-		empty, err := isEmpty(projectFolder, osshim)
+		empty, err := initCommand.isEmpty(projectFolder)
 		if err != nil {
 			return err
 		} else if !empty {
@@ -50,8 +64,8 @@ func prepareProjectFolder(projectFolder string, osshim goshim.Os) error {
 	return nil
 }
 
-func isEmpty(name string, osshim goshim.Os) (bool, error) {
-	f, err := osshim.Open(name)
+func (initCommand *InitCommand) isEmpty(name string) (bool, error) {
+	f, err := initCommand.os.Open(name)
 	if err != nil {
 		return false, err
 	}
@@ -64,18 +78,18 @@ func isEmpty(name string, osshim goshim.Os) (bool, error) {
 	return false, err // Either not empty or error, suits both cases
 }
 
-func downloadTemplate(projectFolder string, githubOrg string, templateName string, osshim goshim.Os, httpshim goshim.Http, io goshim.Io) (string, error) {
+func (initCommand *InitCommand) downloadTemplate(projectFolder string, githubOrg string, templateName string) (string, error) {
 	fmt.Println("Downloading template")
 
 	fileName := fmt.Sprintf("%s/%s.zip", projectFolder, templateName)
 
-	out, err := osshim.Create(fileName)
+	out, err := initCommand.os.Create(fileName)
 	defer out.Close()
 	if err != nil {
 		return fileName, err
 	}
 
-	resp, err := httpshim.Get(fmt.Sprintf("https://github.com/%s/%s/archive/master.zip", githubOrg, templateName))
+	resp, err := initCommand.http.Get(fmt.Sprintf("https://github.com/%s/%s/archive/master.zip", githubOrg, templateName))
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -87,7 +101,7 @@ func downloadTemplate(projectFolder string, githubOrg string, templateName strin
 		return fileName, errors.New(fmt.Sprintf("Project template %s/%s could not be found", githubOrg, templateName))
 	}
 
-	_, err = io.Copy(out, resp.Body)
+	_, err = initCommand.io.Copy(out, resp.Body)
 	if err != nil {
 		return fileName, err
 	}
@@ -95,20 +109,20 @@ func downloadTemplate(projectFolder string, githubOrg string, templateName strin
 	return fileName, nil
 }
 
-func unzip(archive string, target string, osshim goshim.Os, io goshim.Io) error {
+func (initCommand *InitCommand) unzip(archive string, target string) error {
 	fmt.Println(fmt.Sprintf("Extracting template from %s", archive))
 
-	reader, err := zip.OpenReader(archive)
+	reader, err := initCommand.zip.OpenReader(archive)
 	if err != nil {
 		return err
 	}
 
-	if err := osshim.MkdirAll(target, 0755); err != nil {
+	if err := initCommand.os.MkdirAll(target, 0755); err != nil {
 		return err
 	}
 
 	for _, file := range reader.File {
-		err = unzipFile(file, target, osshim, io)
+		err = initCommand.unzipFile(file, target)
 		if err != nil {
 			return err
 		}
@@ -117,12 +131,12 @@ func unzip(archive string, target string, osshim goshim.Os, io goshim.Io) error 
 	return nil
 }
 
-func unzipFile(file *zip.File, target string, osshim goshim.Os, io goshim.Io) error {
+func (initCommand *InitCommand) unzipFile(file *zip.File, target string) error {
 	fileName := file.Name[strings.Index(file.Name, "/")+1:len(file.Name)]
 
 	path := filepath.Join(target, fileName)
 	if file.FileInfo().IsDir() {
-		osshim.MkdirAll(path, file.Mode())
+		initCommand.os.MkdirAll(path, file.Mode())
 		return nil
 	}
 
@@ -132,7 +146,7 @@ func unzipFile(file *zip.File, target string, osshim goshim.Os, io goshim.Io) er
 	}
 	defer fileReader.Close()
 
-	targetFile, err := osshim.OpenFile(path, O_WRONLY|O_CREATE|O_TRUNC, file.Mode())
+	targetFile, err := initCommand.os.OpenFile(path, O_WRONLY|O_CREATE|O_TRUNC, file.Mode())
 	if targetFile != nil {
 		defer targetFile.Close()
 	}
@@ -140,19 +154,15 @@ func unzipFile(file *zip.File, target string, osshim goshim.Os, io goshim.Io) er
 		return err
 	}
 
-	if _, err := io.Copy(targetFile, fileReader); err != nil {
+	if _, err := initCommand.io.Copy(targetFile, fileReader); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func clean(fileName string, osshim goshim.Os) error {
-	if fileName == "" {
-		return nil
-	}
-
+func (initCommand *InitCommand) clean(fileName string) error {
 	fmt.Println(fmt.Sprintf("Cleaning %s", fileName))
 
-	return osshim.Remove(fileName)
+	return initCommand.os.Remove(fileName)
 }

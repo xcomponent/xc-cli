@@ -11,42 +11,57 @@ import (
 	"fmt"
 	"net/http"
 	"io"
-	"github.com/daniellavoie/go-shim/httpshim/fake_http"
-	"github.com/daniellavoie/go-shim/ioshim/fake_io"
-	"github.com/daniellavoie/go-shim/osshim/fake_os"
+	"github.com/daniellavoie/go-shim/zipshim/fake_zip"
+	"archive/zip"
+	"github.com/xcomponent/xc-cli/services"
+	"github.com/xcomponent/xc-cli/services/servicesfake"
+	"github.com/daniellavoie/go-shim/httpshim"
 )
 
 var _ = Describe("Init", func() {
 	var projectFolder string
-	var githubOrg = "xcomponent-templates"
-	var templateName = "default"
+	var githubOrg string
+	var templateName string
 	var err error
-	var osshim *fake_os.FakeOs
-	var httpFake *fake_http.FakeHttp
-	var ioFake *fake_io.FakeIo
+	var osFake = &servicesfake.FakeOsService{}
+	var httpFake = &servicesfake.FakeHttpService{}
+	var ioFake = &servicesfake.FakeIoService{}
+	var zipFake *fake_zip.FakeZip
 
 	var makeDirErr error
 
 	BeforeEach(func() {
-		osshim = new(fake_os.FakeOs)
-		osshim.StatStub = os.Stat
-		osshim.IsNotExistStub = os.IsNotExist
-		osshim.MkdirAllStub = os.MkdirAll
-		osshim.MkdirStub = os.Mkdir
-		osshim.OpenStub = os.Open
-		osshim.CreateStub = os.Create
+		githubOrg = "xcomponent-templates"
+		templateName = "default"
 
-		httpFake = new(fake_http.FakeHttp)
-		httpFake.GetStub = http.Get
+		var osService = services.NewOsService()
+		osFake.StatStub = osService.Stat
+		osFake.IsNotExistStub = osService.IsNotExist
+		osFake.MkdirAllStub = osService.MkdirAll
+		osFake.MkdirStub = osService.Mkdir
+		osFake.OpenStub = osService.Open
+		osFake.CreateStub = osService.Create
 
-		ioFake = new(fake_io.FakeIo)
-		ioFake.CopyStub = io.Copy
+		var ioService = services.NewIoService()
+		ioFake.CopyStub = ioService.Copy
+
+		zipFake = new(fake_zip.FakeZip)
+		zipFake.OpenReaderStub = zip.OpenReader
+
+		var httpService = services.NewHttpService(&httpshim.HttpShim{})
+		httpFake.GetStub = httpService.Get
+		httpFake.GetJsonStub = httpService.GetJson
 
 		err = nil
 	})
 
 	JustBeforeEach(func() {
-		err = commands.Init(projectFolder, githubOrg, templateName, osshim, httpFake, ioFake);
+		err = commands.NewInitCommand(
+			httpFake,
+			ioFake,
+			osFake,
+			services.NewZipService(zipFake),
+		).Init(projectFolder, githubOrg, templateName)
 	})
 
 	Context("Init default project", func() {
@@ -63,7 +78,7 @@ var _ = Describe("Init", func() {
 			Context("can't create project folder", func() {
 				BeforeEach(func() {
 					makeDirErr = errors.New("Could not create project folder dir")
-					osshim.MkdirAllStub = func(path string, perm os.FileMode) error {
+					osFake.MkdirAllStub = func(path string, perm os.FileMode) error {
 						return makeDirErr
 					}
 				})
@@ -84,7 +99,7 @@ var _ = Describe("Init", func() {
 			Context("and can't be read", func() {
 				var cannotReadErr error
 				BeforeEach(func() {
-					osshim.StatStub = func(name string) (os.FileInfo, error) {
+					osFake.StatStub = func(name string) (os.FileInfo, error) {
 						cannotReadErr = errors.New("Folder can't be read")
 
 						return nil, cannotReadErr
@@ -115,7 +130,7 @@ var _ = Describe("Init", func() {
 				var openErr = errors.New("Failed to open file")
 
 				BeforeEach(func() {
-					osshim.OpenStub = func(name string) (*os.File, error) {
+					osFake.OpenStub = func(name string) (*os.File, error) {
 						return nil, openErr
 					}
 				})
@@ -148,7 +163,7 @@ var _ = Describe("Init", func() {
 			var createZipErr = errors.New("zip file cannot be written")
 
 			BeforeEach(func() {
-				osshim.CreateStub = func(name string) (*os.File, error) {
+				osFake.CreateStub = func(name string) (*os.File, error) {
 					return nil, createZipErr
 				}
 			})
@@ -200,6 +215,50 @@ var _ = Describe("Init", func() {
 				Expect(err).Should(HaveOccurred())
 				Expect(err.Error()).To(Equal(fmt.Sprintf("Project template %s/%s could not be found", githubOrg, templateName)))
 			})
+		})
+
+		Context("unzip failure", func() {
+			var zipErr = errors.New("could not unzip file")
+
+			BeforeEach(func() {
+				zipFake.OpenReaderStub = func(name string) (*zip.ReadCloser, error) {
+					return nil, zipErr
+				}
+			})
+
+			It("should return error", func() {
+				Expect(err).Should(HaveOccurred())
+				Expect(err).To(Equal(zipErr))
+			})
+		})
+
+		Context("create folder on unzip failure", func() {
+			var mkdirErr = errors.New("could not create zip folder")
+			var activateMkdirFailure = false
+
+			BeforeEach(func() {
+				zipFake.OpenReaderStub = func(name string) (*zip.ReadCloser, error) {
+					activateMkdirFailure = true
+					return zip.OpenReader(name)
+				}
+
+				osFake.MkdirAllStub = func(path string, perm os.FileMode) error {
+					if activateMkdirFailure {
+						return mkdirErr
+					} else {
+						return os.MkdirAll(path, perm)
+					}
+				}
+			})
+
+			It("should return error", func() {
+				Expect(err).Should(HaveOccurred())
+				Expect(err).To(Equal(mkdirErr))
+			})
+		})
+
+		Context("unzip fails on a single file", func() {
+
 		})
 	})
 

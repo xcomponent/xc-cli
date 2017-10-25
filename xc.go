@@ -5,9 +5,10 @@ import (
 	"github.com/urfave/cli"
 	"github.com/xcomponent/xc-cli/commands"
 	"os"
-	. "github.com/daniellavoie/go-shim/osshim"
 	. "github.com/daniellavoie/go-shim/httpshim"
-	. "github.com/daniellavoie/go-shim/ioshim"
+	. "github.com/daniellavoie/go-shim/zipshim"
+	"github.com/xcomponent/xc-cli/services"
+	"github.com/daniellavoie/go-shim/execshim"
 )
 
 func main() {
@@ -16,8 +17,12 @@ func main() {
 	app.Usage = "XComponent Command Line Interface"
 	app.Version = "0.2.0"
 
-	os.TempDir()
-	app.Commands = commands.GetCommands(new(OsShim), new(HttpShim), new(IoShim))
+	app.Commands = commands.GetCommands(
+		services.NewOsService(),
+		services.NewHttpService(new(HttpShim)),
+		services.NewIoService(),
+		services.NewZipService(new(ZipShim)),
+		services.NewExecService(&execshim.ExecShim{}))
 
 	err := app.Run(os.Args)
 	if err != nil {
