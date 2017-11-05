@@ -11,6 +11,6 @@ before_install:
   - dep ensure
 
 script:
-  - ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --compilers=2
+  - ginkgo commands --failOnPending --cover --trace -coverpkg=commands
   - gox -os="linux windows darwin" -arch="386 amd64" -output=dist/{{.Dir}}_{{.OS}}_{{.Arch}}
   - goveralls -service=travis-ci
