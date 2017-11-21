@@ -3,18 +3,18 @@ package commands
 import (
 	"github.com/urfave/cli"
 	"strings"
-	"os"
-	"github.com/daniellavoie/go-shim"
+	"runtime"
+	"github.com/xcomponent/xc-cli/services"
 )
 
 const (
 	installConfigUrl = "https://raw.githubusercontent.com/xcomponent/xc-cli/install-config-v1/install-config.json"
 
 	githubOrg = "xcomponent-templates"
-
 )
 
-func GetCommands(osshim goshim.Os, httpshim goshim.Http, io goshim.Io) ([]cli.Command) {
+func GetCommands(os services.OsService, http services.HttpService, io services.IoService, zip services.ZipService,
+	exec services.ExecService) ([]cli.Command) {
 	return []cli.Command{
 		{
 			Name:  "install",
@@ -27,20 +27,24 @@ func GetCommands(osshim goshim.Os, httpshim goshim.Http, io goshim.Io) ([]cli.Co
 					Value: installConfigUrl},
 			},
 			Action: func(c *cli.Context) error {
-				return Install(
+				var installCommand = InstallCommand{os: os, io: io, http: http, exec: exec}
+
+				return installCommand.Install(
 					c.String("install-config-url"),
-					false,
-					c.Bool("keep-temp-files"))
+					runtime.GOOS,
+					runtime.GOARCH)
 			},
 		},
 		{
-			Name:  "init",
-			Usage: "Initialize a new XComponent project",
+			Name:      "init",
+			Usage:     "Initialize a new XComponent project",
 			ArgsUsage: "[ORGANIZATION:][TEMPLATE-NAME]",
 			Action: func(c *cli.Context) error {
 				if len(c.Args()) > 1 {
 					cli.ShowCommandHelp(c, "init")
+
 					os.Exit(1)
+					return nil
 				}
 
 				var githubOrg = githubOrg
@@ -51,7 +55,7 @@ func GetCommands(osshim goshim.Os, httpshim goshim.Http, io goshim.Io) ([]cli.Co
 					if i != -1 {
 						githubOrg = templateArg[:i]
 						templateName = templateArg[i+1:]
-					}else {
+					} else {
 						templateName = templateArg
 					}
 				}
@@ -60,7 +64,9 @@ func GetCommands(osshim goshim.Os, httpshim goshim.Http, io goshim.Io) ([]cli.Co
 					return err
 				}
 
-				return Init(workDir, githubOrg, templateName, osshim, httpshim, io)
+				var initCommand = InitCommand{http, io, os, zip}
+
+				return initCommand.Init(workDir, githubOrg, templateName)
 			},
 		},
 	}

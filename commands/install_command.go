@@ -2,55 +2,60 @@ package commands
 
 import (
 	"fmt"
-	"runtime"
 	"errors"
-	"io/ioutil"
-	"os"
-	"net/http"
-	"io"
-	"encoding/json"
-	"os/exec"
 	"bytes"
 	"strings"
+	"github.com/xcomponent/xc-cli/services"
 )
 
 type InstallConfig struct {
 	XcStudioDistribs map[string]string `json:"xcStudioDistribs"`
 }
 
-func Install(installConfigUrl string, mockWindows bool, keepTempFiles bool) error {
-	if mockWindows {
-		err := checkOs()
-		if err != nil {
-			return err
-		}
+func NewInstallCommand(os services.OsService, io services.IoService, http services.HttpService,
+	exec services.ExecService) *InstallCommand {
+	return &InstallCommand{os, io, http, exec}
+}
 
-		err = checkDotNet()
-		if err != nil {
-			return err
-		}
-	}
+type InstallCommand struct {
+	os   services.OsService
+	io   services.IoService
+	http services.HttpService
+	exec services.ExecService
+}
 
-	installConfig, err := loadInstallConfig(installConfigUrl)
+func (installCommand *InstallCommand) Install(installConfigUrl string, osName string, osArch string) error {
+
+	err := installCommand.checkOs(osName)
 	if err != nil {
 		return err
 	}
 
-	distribUrl := installConfig.XcStudioDistribs[runtime.GOARCH]
+	err = installCommand.checkDotNet()
+	if err != nil {
+		return err
+	}
+
+	installConfig, err := installCommand.loadInstallConfig(installConfigUrl)
+	if err != nil {
+		return err
+	}
+
+	distribUrl := installConfig.XcStudioDistribs[osArch]
 	if distribUrl == "" {
-		return errors.New(fmt.Sprintf("xc install does not support %s arch", runtime.GOARCH))
+		return fmt.Errorf("xc install does not support %s arch", osArch)
 	}
 
-	msiPath, err := downloadMsi(distribUrl)
-	if !keepTempFiles && msiPath != "" {
+	msiPath, err := installCommand.downloadMsi(distribUrl)
+	if msiPath != "" {
 		defer fmt.Printf("Cleaning temporary directory %s.\n", msiPath)
-		defer os.RemoveAll(msiPath)
+		defer installCommand.os.RemoveAll(msiPath)
 	}
 	if err != nil {
 		return err
 	}
 
-	err = installXcStudio(msiPath)
+	err = installCommand.installXcStudio(msiPath)
 	if err != nil {
 		return err
 	}
@@ -60,12 +65,12 @@ func Install(installConfigUrl string, mockWindows bool, keepTempFiles bool) erro
 	return nil
 }
 
-func checkDotNet() error {
+func (installCommand *InstallCommand) checkDotNet() error {
 	fmt.Print("Checking .Net version.\n")
 
 	var outbuf bytes.Buffer
 
-	cmd := exec.Command("powershell", "-command", "\"Get-ChildItem 'hklm:SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full\\' | Get-ItemPropertyValue -Name Release | % { $_ -ge 394802 }\"")
+	cmd := installCommand.exec.Command("powershell", "-command", "\"Get-ChildItem 'hklm:SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full\\' | Get-ItemPropertyValue -Name Release | % { $_ -ge 394802 }\"")
 
 	cmd.Stdout = &outbuf
 
@@ -76,7 +81,7 @@ func checkDotNet() error {
 	}
 	stdout := outbuf.String()
 
-	if strings.HasPrefix(stdout, "True") {
+	if strings.HasPrefix(stdout, "False") {
 		return errors.New("XComponent requires a version of DotNet higher than 4.5")
 	}
 
@@ -84,16 +89,16 @@ func checkDotNet() error {
 	return nil
 }
 
-func checkOs() error {
-	if runtime.GOOS != "windows" {
+func (installCommand *InstallCommand) checkOs(osName string) error {
+	if osName != "windows" {
 		return errors.New("Install command is only supported on Windows")
 	}
 
 	return nil
 }
 
-func downloadMsi(msiUrl string) (msiPath string, err error) {
-	dir, err := ioutil.TempDir("", "xc-install")
+func (installCommand *InstallCommand) downloadMsi(msiUrl string) (msiPath string, err error) {
+	dir, err := installCommand.io.TempDir("", "xc-install")
 
 	if err != nil {
 		return "", err
@@ -103,19 +108,22 @@ func downloadMsi(msiUrl string) (msiPath string, err error) {
 
 	fmt.Printf("Downloading %s to %s.\n", msiUrl, path)
 
-	out, err := os.Create(path)
+	out, err := installCommand.os.Create(path)
 	defer out.Close()
 	if err != nil {
 		return dir, err
 	}
 
-	resp, err := http.Get(msiUrl)
-	defer resp.Body.Close()
+	resp, err := installCommand.http.Get(msiUrl)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
 	if err != nil {
 		return dir, err
 	}
 
-	_, err = io.Copy(out, resp.Body)
+	_, err = installCommand.io.Copy(out, resp.Body)
 	if err != nil {
 		return dir, err
 	}
@@ -125,19 +133,8 @@ func downloadMsi(msiUrl string) (msiPath string, err error) {
 	return path, nil
 }
 
-func getJson(url string, target interface{}) error {
-	client := &http.Client{}
-	response, err := client.Get(url)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-
-	return json.NewDecoder(response.Body).Decode(target)
-}
-
-func installXcStudio(msiPath string) error {
-	cmd := exec.Command("msiexec", "/i", msiPath, "/passive")
+func (installCommand *InstallCommand) installXcStudio(msiPath string) error {
+	cmd := installCommand.exec.Command("msiexec", "/i", msiPath, "/passive")
 
 	fmt.Printf("Executing command : %s\n", cmd.Args)
 
@@ -148,10 +145,10 @@ func installXcStudio(msiPath string) error {
 	return nil
 }
 
-func loadInstallConfig(installConfigUrl string) (*InstallConfig, error) {
+func (installCommand *InstallCommand) loadInstallConfig(installConfigUrl string) (*InstallConfig, error) {
 	installConfig := InstallConfig{}
 
-	err := getJson(installConfigUrl, &installConfig)
+	err := installCommand.http.GetJson(installConfigUrl, &installConfig)
 	if err != nil {
 		return nil, err
 	}
