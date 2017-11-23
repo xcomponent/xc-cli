@@ -15,7 +15,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "XC CLI"
 	app.Usage = "XComponent Command Line Interface"
-	app.Version = "0.2.0"
+	app.Version = "0.3.0"
 
 	app.Commands = commands.GetCommands(
 		services.NewOsService(),

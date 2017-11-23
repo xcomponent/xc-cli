@@ -9,6 +9,7 @@ import (
 	"github.com/xcomponent/xc-cli/services"
 	"io"
 	"archive/zip"
+	"github.com/xcomponent/xc-cli/util"
 )
 
 type InitCommand struct {
@@ -23,7 +24,9 @@ func NewInitCommand(http services.HttpService, io services.IoService, os service
 	return &InitCommand{http, io, os, zip}
 }
 
-func (initCommand *InitCommand) Init(projectFolder string, githubOrg, templateName string) error {
+func (initCommand *InitCommand) Init(
+	projectFolder string, githubOrg, templateName string, projectName string) error {
+
 	err := initCommand.prepareProjectFolder(projectFolder)
 
 	if err != nil {
@@ -37,7 +40,17 @@ func (initCommand *InitCommand) Init(projectFolder string, githubOrg, templateNa
 		return err
 	}
 
-	return initCommand.unzip(fileName, projectFolder)
+	err = initCommand.unzip(fileName, projectFolder)
+	if err != nil {
+		return err
+	}
+
+	if projectName != "" {
+		return util.NewFileUtils(initCommand.os, initCommand.io).RenameAndReplaceFiles(
+			projectFolder, "NewProject", projectName)
+	}
+
+	return nil
 }
 
 func (initCommand *InitCommand) prepareProjectFolder(projectFolder string) error {

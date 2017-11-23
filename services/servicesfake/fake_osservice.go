@@ -38,6 +38,15 @@ type FakeOsService struct {
 		result1 string
 		result2 error
 	}
+	GetPathSeperatorStub        func() rune
+	getPathSeperatorMutex       sync.RWMutex
+	getPathSeperatorArgsForCall []struct{}
+	getPathSeperatorReturns     struct {
+		result1 rune
+	}
+	getPathSeperatorReturnsOnCall map[int]struct {
+		result1 rune
+	}
 	IsNotExistStub        func(err error) bool
 	isNotExistMutex       sync.RWMutex
 	isNotExistArgsForCall []struct {
@@ -121,6 +130,18 @@ type FakeOsService struct {
 		result1 error
 	}
 	removeAllReturnsOnCall map[int]struct {
+		result1 error
+	}
+	RenameStub        func(oldpath string, newpath string) error
+	renameMutex       sync.RWMutex
+	renameArgsForCall []struct {
+		oldpath string
+		newpath string
+	}
+	renameReturns struct {
+		result1 error
+	}
+	renameReturnsOnCall map[int]struct {
 		result1 error
 	}
 	StatStub        func(name string) (os.FileInfo, error)
@@ -256,6 +277,46 @@ func (fake *FakeOsService) GetwdReturnsOnCall(i int, result1 string, result2 err
 		result1 string
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeOsService) GetPathSeperator() rune {
+	fake.getPathSeperatorMutex.Lock()
+	ret, specificReturn := fake.getPathSeperatorReturnsOnCall[len(fake.getPathSeperatorArgsForCall)]
+	fake.getPathSeperatorArgsForCall = append(fake.getPathSeperatorArgsForCall, struct{}{})
+	fake.recordInvocation("GetPathSeperator", []interface{}{})
+	fake.getPathSeperatorMutex.Unlock()
+	if fake.GetPathSeperatorStub != nil {
+		return fake.GetPathSeperatorStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.getPathSeperatorReturns.result1
+}
+
+func (fake *FakeOsService) GetPathSeperatorCallCount() int {
+	fake.getPathSeperatorMutex.RLock()
+	defer fake.getPathSeperatorMutex.RUnlock()
+	return len(fake.getPathSeperatorArgsForCall)
+}
+
+func (fake *FakeOsService) GetPathSeperatorReturns(result1 rune) {
+	fake.GetPathSeperatorStub = nil
+	fake.getPathSeperatorReturns = struct {
+		result1 rune
+	}{result1}
+}
+
+func (fake *FakeOsService) GetPathSeperatorReturnsOnCall(i int, result1 rune) {
+	fake.GetPathSeperatorStub = nil
+	if fake.getPathSeperatorReturnsOnCall == nil {
+		fake.getPathSeperatorReturnsOnCall = make(map[int]struct {
+			result1 rune
+		})
+	}
+	fake.getPathSeperatorReturnsOnCall[i] = struct {
+		result1 rune
+	}{result1}
 }
 
 func (fake *FakeOsService) IsNotExist(err error) bool {
@@ -604,6 +665,55 @@ func (fake *FakeOsService) RemoveAllReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeOsService) Rename(oldpath string, newpath string) error {
+	fake.renameMutex.Lock()
+	ret, specificReturn := fake.renameReturnsOnCall[len(fake.renameArgsForCall)]
+	fake.renameArgsForCall = append(fake.renameArgsForCall, struct {
+		oldpath string
+		newpath string
+	}{oldpath, newpath})
+	fake.recordInvocation("Rename", []interface{}{oldpath, newpath})
+	fake.renameMutex.Unlock()
+	if fake.RenameStub != nil {
+		return fake.RenameStub(oldpath, newpath)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.renameReturns.result1
+}
+
+func (fake *FakeOsService) RenameCallCount() int {
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
+	return len(fake.renameArgsForCall)
+}
+
+func (fake *FakeOsService) RenameArgsForCall(i int) (string, string) {
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
+	return fake.renameArgsForCall[i].oldpath, fake.renameArgsForCall[i].newpath
+}
+
+func (fake *FakeOsService) RenameReturns(result1 error) {
+	fake.RenameStub = nil
+	fake.renameReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeOsService) RenameReturnsOnCall(i int, result1 error) {
+	fake.RenameStub = nil
+	if fake.renameReturnsOnCall == nil {
+		fake.renameReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.renameReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeOsService) Stat(name string) (os.FileInfo, error) {
 	fake.statMutex.Lock()
 	ret, specificReturn := fake.statReturnsOnCall[len(fake.statArgsForCall)]
@@ -664,6 +774,8 @@ func (fake *FakeOsService) Invocations() map[string][][]interface{} {
 	defer fake.exitMutex.RUnlock()
 	fake.getwdMutex.RLock()
 	defer fake.getwdMutex.RUnlock()
+	fake.getPathSeperatorMutex.RLock()
+	defer fake.getPathSeperatorMutex.RUnlock()
 	fake.isNotExistMutex.RLock()
 	defer fake.isNotExistMutex.RUnlock()
 	fake.mkdirMutex.RLock()
@@ -678,6 +790,8 @@ func (fake *FakeOsService) Invocations() map[string][][]interface{} {
 	defer fake.removeMutex.RUnlock()
 	fake.removeAllMutex.RLock()
 	defer fake.removeAllMutex.RUnlock()
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
 	fake.statMutex.RLock()
 	defer fake.statMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

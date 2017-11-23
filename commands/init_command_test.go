@@ -22,6 +22,7 @@ var _ = Describe("Init", func() {
 	var projectFolder string
 	var githubOrg string
 	var templateName string
+	var projectName string
 	var err error
 	var osFake = &servicesfake.FakeOsService{}
 	var httpFake = &servicesfake.FakeHttpService{}
@@ -33,6 +34,7 @@ var _ = Describe("Init", func() {
 	BeforeEach(func() {
 		githubOrg = "xcomponent-templates"
 		templateName = "default"
+		projectName = "test-project"
 
 		var osService = services.NewOsService()
 		osFake.StatStub = osService.Stat
@@ -40,7 +42,9 @@ var _ = Describe("Init", func() {
 		osFake.MkdirAllStub = osService.MkdirAll
 		osFake.MkdirStub = osService.Mkdir
 		osFake.OpenStub = osService.Open
+		osFake.OpenFileStub = osService.OpenFile
 		osFake.CreateStub = osService.Create
+		osFake.RenameStub = osService.Rename
 
 		var ioService = services.NewIoService()
 		ioFake.CopyStub = ioService.Copy
@@ -61,12 +65,26 @@ var _ = Describe("Init", func() {
 			ioFake,
 			osFake,
 			services.NewZipService(zipFake),
-		).Init(projectFolder, githubOrg, templateName)
+		).Init(projectFolder, githubOrg, templateName, projectName)
 	})
 
 	Context("Init default project", func() {
 		BeforeEach(func() {
-			projectFolder = filepath.Join(os.TempDir(), "init-test")
+			var tempErr error
+			projectFolder, tempErr = ioutil.TempDir("", "init-test")
+			if tempErr != nil {
+				panic(tempErr)
+			}
+		})
+
+		Context("default project name", func() {
+			BeforeEach(func() {
+				projectName = ""
+			})
+
+			It("should not fail", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("project folder does not already exists", func() {
@@ -150,7 +168,6 @@ var _ = Describe("Init", func() {
 				It("should return error", func() {
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).To(Equal(fmt.Sprintf("%s is not empty", projectFolder)))
-
 				})
 			})
 
@@ -256,10 +273,6 @@ var _ = Describe("Init", func() {
 				Expect(err).To(Equal(mkdirErr))
 			})
 		})
-
-		Context("unzip fails on a single file", func() {
-
-		})
 	})
 
 	AfterEach(func() {
@@ -270,5 +283,5 @@ var _ = Describe("Init", func() {
 func projectFolderInitialized(projectFolder string) {
 	files, err := ioutil.ReadDir(projectFolder)
 	Expect(err).ShouldNot(HaveOccurred())
-	Expect(len(files)).Should(Equal(2))
+	Expect(len(files)).Should(Equal(3))
 }

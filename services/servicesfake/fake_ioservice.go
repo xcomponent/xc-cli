@@ -3,6 +3,7 @@ package servicesfake
 
 import (
 	"io"
+	"os"
 	"sync"
 
 	"github.com/xcomponent/xc-cli/services"
@@ -23,6 +24,19 @@ type FakeIoService struct {
 		result1 int64
 		result2 error
 	}
+	ReadFileStub        func(filename string) ([]byte, error)
+	readFileMutex       sync.RWMutex
+	readFileArgsForCall []struct {
+		filename string
+	}
+	readFileReturns struct {
+		result1 []byte
+		result2 error
+	}
+	readFileReturnsOnCall map[int]struct {
+		result1 []byte
+		result2 error
+	}
 	TempDirStub        func(dir, prefix string) (name string, err error)
 	tempDirMutex       sync.RWMutex
 	tempDirArgsForCall []struct {
@@ -36,6 +50,19 @@ type FakeIoService struct {
 	tempDirReturnsOnCall map[int]struct {
 		result1 string
 		result2 error
+	}
+	WriteFileStub        func(filename string, data []byte, perm os.FileMode) error
+	writeFileMutex       sync.RWMutex
+	writeFileArgsForCall []struct {
+		filename string
+		data     []byte
+		perm     os.FileMode
+	}
+	writeFileReturns struct {
+		result1 error
+	}
+	writeFileReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -93,6 +120,57 @@ func (fake *FakeIoService) CopyReturnsOnCall(i int, result1 int64, result2 error
 	}{result1, result2}
 }
 
+func (fake *FakeIoService) ReadFile(filename string) ([]byte, error) {
+	fake.readFileMutex.Lock()
+	ret, specificReturn := fake.readFileReturnsOnCall[len(fake.readFileArgsForCall)]
+	fake.readFileArgsForCall = append(fake.readFileArgsForCall, struct {
+		filename string
+	}{filename})
+	fake.recordInvocation("ReadFile", []interface{}{filename})
+	fake.readFileMutex.Unlock()
+	if fake.ReadFileStub != nil {
+		return fake.ReadFileStub(filename)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.readFileReturns.result1, fake.readFileReturns.result2
+}
+
+func (fake *FakeIoService) ReadFileCallCount() int {
+	fake.readFileMutex.RLock()
+	defer fake.readFileMutex.RUnlock()
+	return len(fake.readFileArgsForCall)
+}
+
+func (fake *FakeIoService) ReadFileArgsForCall(i int) string {
+	fake.readFileMutex.RLock()
+	defer fake.readFileMutex.RUnlock()
+	return fake.readFileArgsForCall[i].filename
+}
+
+func (fake *FakeIoService) ReadFileReturns(result1 []byte, result2 error) {
+	fake.ReadFileStub = nil
+	fake.readFileReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeIoService) ReadFileReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.ReadFileStub = nil
+	if fake.readFileReturnsOnCall == nil {
+		fake.readFileReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.readFileReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeIoService) TempDir(dir string, prefix string) (name string, err error) {
 	fake.tempDirMutex.Lock()
 	ret, specificReturn := fake.tempDirReturnsOnCall[len(fake.tempDirArgsForCall)]
@@ -145,13 +223,72 @@ func (fake *FakeIoService) TempDirReturnsOnCall(i int, result1 string, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeIoService) WriteFile(filename string, data []byte, perm os.FileMode) error {
+	var dataCopy []byte
+	if data != nil {
+		dataCopy = make([]byte, len(data))
+		copy(dataCopy, data)
+	}
+	fake.writeFileMutex.Lock()
+	ret, specificReturn := fake.writeFileReturnsOnCall[len(fake.writeFileArgsForCall)]
+	fake.writeFileArgsForCall = append(fake.writeFileArgsForCall, struct {
+		filename string
+		data     []byte
+		perm     os.FileMode
+	}{filename, dataCopy, perm})
+	fake.recordInvocation("WriteFile", []interface{}{filename, dataCopy, perm})
+	fake.writeFileMutex.Unlock()
+	if fake.WriteFileStub != nil {
+		return fake.WriteFileStub(filename, data, perm)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.writeFileReturns.result1
+}
+
+func (fake *FakeIoService) WriteFileCallCount() int {
+	fake.writeFileMutex.RLock()
+	defer fake.writeFileMutex.RUnlock()
+	return len(fake.writeFileArgsForCall)
+}
+
+func (fake *FakeIoService) WriteFileArgsForCall(i int) (string, []byte, os.FileMode) {
+	fake.writeFileMutex.RLock()
+	defer fake.writeFileMutex.RUnlock()
+	return fake.writeFileArgsForCall[i].filename, fake.writeFileArgsForCall[i].data, fake.writeFileArgsForCall[i].perm
+}
+
+func (fake *FakeIoService) WriteFileReturns(result1 error) {
+	fake.WriteFileStub = nil
+	fake.writeFileReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeIoService) WriteFileReturnsOnCall(i int, result1 error) {
+	fake.WriteFileStub = nil
+	if fake.writeFileReturnsOnCall == nil {
+		fake.writeFileReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.writeFileReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeIoService) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.copyMutex.RLock()
 	defer fake.copyMutex.RUnlock()
+	fake.readFileMutex.RLock()
+	defer fake.readFileMutex.RUnlock()
 	fake.tempDirMutex.RLock()
 	defer fake.tempDirMutex.RUnlock()
+	fake.writeFileMutex.RLock()
+	defer fake.writeFileMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
