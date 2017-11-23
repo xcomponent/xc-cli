@@ -9,6 +9,7 @@ import (
 
 const (
 	installConfigUrl = "https://raw.githubusercontent.com/xcomponent/xc-cli/install-config-v1/install-config.json"
+	projectName      = ""
 
 	githubOrg = "xcomponent-templates"
 )
@@ -39,6 +40,12 @@ func GetCommands(os services.OsService, http services.HttpService, io services.I
 			Name:      "init",
 			Usage:     "Initialize a new XComponent project",
 			ArgsUsage: "[ORGANIZATION:][TEMPLATE-NAME]",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "project-name",
+					Usage: "Project name.",
+					Value: projectName},
+			},
 			Action: func(c *cli.Context) error {
 				if len(c.Args()) > 1 {
 					cli.ShowCommandHelp(c, "init")
@@ -59,6 +66,7 @@ func GetCommands(os services.OsService, http services.HttpService, io services.I
 						templateName = templateArg
 					}
 				}
+
 				workDir, err := os.Getwd()
 				if err != nil {
 					return err
@@ -66,7 +74,7 @@ func GetCommands(os services.OsService, http services.HttpService, io services.I
 
 				var initCommand = InitCommand{http, io, os, zip}
 
-				return initCommand.Init(workDir, githubOrg, templateName)
+				return initCommand.Init(workDir, githubOrg, templateName, c.String("project-name"))
 			},
 		},
 	}
