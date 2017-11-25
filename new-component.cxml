@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ComponentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="NewComponent" Version="1">
+  <StateMachines>
+    <StateMachineData Id="1" Name="NewComponent" />
+  </StateMachines>
+  <States>
+    <StateData Id="1" Name="EntryPoint" IsEntryPoint="true" SubGraphKey="StateMachine1">
+      <TriggeredMethods />
+    </StateData>
+  </States>
+  <TransitionPatternStates />
+  <Links />
+  <TransversalLinks />
+  <PublicAssemblies />
+  <ExternalAssemblies />
+</ComponentData>
