@@ -2,40 +2,22 @@ package commands
 
 import (
 	"github.com/urfave/cli"
-	"strings"
-	"runtime"
 	"github.com/xcomponent/xc-cli/services"
+	"strings"
 )
 
 const (
 	installConfigUrl = "https://raw.githubusercontent.com/xcomponent/xc-cli/install-config-v1/install-config.json"
 	projectName      = ""
 
-	githubOrg = "xcomponent-templates"
+	projectTemplatesGithubOrg = "xcomponent-templates"
+	addTemplatesGithubOrg     = "xcomponent-add-templates"
 )
 
 func GetCommands(os services.OsService, http services.HttpService, io services.IoService, zip services.ZipService,
-	exec services.ExecService) ([]cli.Command) {
+	exec services.ExecService) []cli.Command {
 	return []cli.Command{
-		{
-			Name:  "install",
-			Usage: "Install XComponent",
-			Flags: []cli.Flag{
-				cli.BoolFlag{Name: "keep-temp-files", Usage: "Temporary files will not be cleaned."},
-				cli.StringFlag{
-					Name:  "install-config-url",
-					Usage: "Url for the dependencies manifest.",
-					Value: installConfigUrl},
-			},
-			Action: func(c *cli.Context) error {
-				var installCommand = InstallCommand{os: os, io: io, http: http, exec: exec}
-
-				return installCommand.Install(
-					c.String("install-config-url"),
-					runtime.GOOS,
-					runtime.GOARCH)
-			},
-		},
+		GetCliCommand(os, http, io, exec),
 		{
 			Name:      "init",
 			Usage:     "Initialize a new XComponent project",
@@ -54,7 +36,7 @@ func GetCommands(os services.OsService, http services.HttpService, io services.I
 					return nil
 				}
 
-				var githubOrg = githubOrg
+				var githubOrg = projectTemplatesGithubOrg
 				var templateName = "default"
 				if len(c.Args()) == 1 {
 					templateArg := c.Args().Get(0)
@@ -72,9 +54,34 @@ func GetCommands(os services.OsService, http services.HttpService, io services.I
 					return err
 				}
 
-				var initCommand = InitCommand{http, io, os, zip}
+				return NewInitCommand(http, io, os, zip).Init(workDir, githubOrg, templateName, c.String("project-name"))
+			},
+		},
+		{
+			Name:      "add",
+			Usage:     "Add new element to the project",
+			ArgsUsage: "ELEMENT-NAME",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "element-type",
+					Usage: "Element type.",
+					Value: "component"},
+			},
+			Action: func(c *cli.Context) error {
+				if len(c.Args()) != 1 {
+					cli.ShowCommandHelp(c, "add")
 
-				return initCommand.Init(workDir, githubOrg, templateName, c.String("project-name"))
+					os.Exit(1)
+					return nil
+				}
+
+				workDir, err := os.Getwd()
+				if err != nil {
+					return err
+				}
+
+				return NewAddCommand(os, http, io, zip).Execute(workDir, c.String("element-type"), c.Args().Get(0),
+					addTemplatesGithubOrg)
 			},
 		},
 	}

@@ -33,6 +33,9 @@ func (fileUtils *FileUtilsImpl) RenameAndReplaceFiles(folder string, old string,
 	}
 
 	err := filepath.Walk(folder, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 
 		if !!fi.IsDir() {
 			return nil

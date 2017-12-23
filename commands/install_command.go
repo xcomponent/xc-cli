@@ -1,15 +1,42 @@
 package commands
 
 import (
-	"fmt"
-	"errors"
 	"bytes"
-	"strings"
+	"errors"
+	"fmt"
+	"github.com/urfave/cli"
 	"github.com/xcomponent/xc-cli/services"
+	"runtime"
+	"strings"
 )
 
 type InstallConfig struct {
 	XcStudioDistribs map[string]string `json:"xcStudioDistribs"`
+}
+
+func GetCliCommand(os services.OsService, http services.HttpService, io services.IoService,
+	exec services.ExecService) cli.Command {
+
+	return cli.Command{
+		Name:  "install",
+		Usage: "Install XComponent",
+		Flags: []cli.Flag{
+			cli.BoolFlag{Name: "keep-temp-files", Usage: "Temporary files will not be cleaned."},
+			cli.StringFlag{
+				Name:  "install-config-url",
+				Usage: "Url for the dependencies manifest.",
+				Value: installConfigUrl},
+		},
+		Action: NewInstallAction,
+	}
+}
+
+func NewInstallAction(c *cli.Context, os services.OsService, http services.HttpService, io services.IoService,
+	exec services.ExecService) error {
+	return NewInstallCommand(os, io, http, exec).Install(
+		c.String("install-config-url"),
+		runtime.GOOS,
+		runtime.GOARCH)
 }
 
 func NewInstallCommand(os services.OsService, io services.IoService, http services.HttpService,
