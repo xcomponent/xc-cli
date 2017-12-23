@@ -107,7 +107,8 @@ var _ = Describe("Install", func() {
 		})
 
 		It("should fail", func() {
-			Expect(err.Error()).To(Equal("exec: \"badcommand\": executable file not found in $PATH"))
+			Expect(err).To(HaveOccurred())
+			Expect(strings.Contains(err.Error(), "exec: \"badcommand\": executable file not found in")).To(Equal(true))
 		})
 	})
 
@@ -222,7 +223,7 @@ var _ = Describe("Install", func() {
 
 		It("should fail", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("exec: \"bad-command\": executable file not found in $PATH"))
+			Expect(strings.Contains(err.Error(), "exec: \"bad-command\": executable file not found in")).To(Equal(true))
 		})
 	})
 

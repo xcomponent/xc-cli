@@ -1,14 +1,10 @@
 package commands
 
 import (
-	. "os"
 	"fmt"
 	"errors"
-	"path/filepath"
-	"strings"
 	"github.com/xcomponent/xc-cli/services"
 	"io"
-	"archive/zip"
 	"github.com/xcomponent/xc-cli/util"
 )
 
@@ -33,22 +29,23 @@ func (initCommand *InitCommand) Init(
 		return err
 	}
 
-	fileName, err := initCommand.downloadTemplate(projectFolder, githubOrg, templateName)
-	defer initCommand.clean(fileName)
-
-	if err != nil {
-		return err
-	}
-
-	err = initCommand.unzip(fileName, projectFolder)
+	err = util.NewGitHubUtils(initCommand.os, initCommand.http, initCommand.io, initCommand.zip).DownloadTemplate(
+		projectFolder, githubOrg, templateName, projectName)
 	if err != nil {
 		return err
 	}
 
 	if projectName != "" {
-		return util.NewFileUtils(initCommand.os, initCommand.io).RenameAndReplaceFiles(
+		err = util.NewFileUtils(initCommand.os, initCommand.io).RenameAndReplaceFiles(
 			projectFolder, "NewProject", projectName)
+		if err != nil {
+			return err
+		}
+	}else {
+		projectName = "NewProject"
 	}
+
+	fmt.Printf("Successfully initialized project %s in %s.\n", projectName,projectFolder)
 
 	return nil
 }
@@ -89,93 +86,4 @@ func (initCommand *InitCommand) isEmpty(name string) (bool, error) {
 		return true, nil
 	}
 	return false, err // Either not empty or error, suits both cases
-}
-
-func (initCommand *InitCommand) downloadTemplate(projectFolder string, githubOrg string, templateName string) (string, error) {
-	fmt.Println("Downloading template")
-
-	fileName := fmt.Sprintf("%s/%s.zip", projectFolder, templateName)
-
-	out, err := initCommand.os.Create(fileName)
-	defer out.Close()
-	if err != nil {
-		return fileName, err
-	}
-
-	resp, err := initCommand.http.Get(fmt.Sprintf("https://github.com/%s/%s/archive/master.zip", githubOrg, templateName))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	if err != nil {
-		return fileName, err
-	}
-
-	if resp.StatusCode == 404 {
-		return fileName, errors.New(fmt.Sprintf("Project template %s/%s could not be found", githubOrg, templateName))
-	}
-
-	_, err = initCommand.io.Copy(out, resp.Body)
-	if err != nil {
-		return fileName, err
-	}
-
-	return fileName, nil
-}
-
-func (initCommand *InitCommand) unzip(archive string, target string) error {
-	fmt.Println(fmt.Sprintf("Extracting template from %s", archive))
-
-	reader, err := initCommand.zip.OpenReader(archive)
-	if err != nil {
-		return err
-	}
-
-	if err := initCommand.os.MkdirAll(target, 0755); err != nil {
-		return err
-	}
-
-	for _, file := range reader.File {
-		err = initCommand.unzipFile(file, target)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (initCommand *InitCommand) unzipFile(file *zip.File, target string) error {
-	fileName := file.Name[strings.Index(file.Name, "/")+1:len(file.Name)]
-
-	path := filepath.Join(target, fileName)
-	if file.FileInfo().IsDir() {
-		initCommand.os.MkdirAll(path, file.Mode())
-		return nil
-	}
-
-	fileReader, err := file.Open()
-	if err != nil {
-		return err
-	}
-	defer fileReader.Close()
-
-	targetFile, err := initCommand.os.OpenFile(path, O_WRONLY|O_CREATE|O_TRUNC, file.Mode())
-	if targetFile != nil {
-		defer targetFile.Close()
-	}
-	if err != nil {
-		return err
-	}
-
-	if _, err := initCommand.io.Copy(targetFile, fileReader); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (initCommand *InitCommand) clean(fileName string) error {
-	fmt.Println(fmt.Sprintf("Cleaning %s", fileName))
-
-	return initCommand.os.Remove(fileName)
 }

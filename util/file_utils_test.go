@@ -49,10 +49,11 @@ var _ = Describe("FileUtils", func() {
 			}
 
 			oldFile = path.Join(tempDir, "NewProject_Model.xcml")
-			_, createErr := os.Create(oldFile)
+			file, createErr := os.Create(oldFile)
 			if createErr != nil {
 				panic(createErr)
 			}
+			defer file.Close()
 
 			expectedNewFile = path.Join(tempDir, fmt.Sprintf("%s_Model.xcml", projectName))
 		})

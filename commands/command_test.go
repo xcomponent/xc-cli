@@ -20,6 +20,6 @@ var _ = Describe("Config", func() {
 			services.NewExecService(new(execshim.ExecShim)))
 
 		Expect(commands).ShouldNot(BeNil())
-		Expect(len(commands)).Should(Equal(2))
+		Expect(len(commands)).Should(Equal(3))
 	})
 })
