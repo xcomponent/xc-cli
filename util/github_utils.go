@@ -41,6 +41,11 @@ func (gitHubUtils *GitHubUtils) DownloadTemplate(templateDestination string, git
 }
 
 func (gitHubUtils *GitHubUtils) clean(fileName string) error {
+	err := gitHubUtils.os.Remove(fileName)
+	if err != nil {
+		fmt.Println("Error while cleaning ", fileName, ". error : ", err)
+	}
+
 	return gitHubUtils.os.Remove(fileName)
 }
 
@@ -77,6 +82,7 @@ func (gitHubUtils *GitHubUtils) unzip(archive string, target string) error {
 	fmt.Println(fmt.Sprintf("Extracting template from %s", archive))
 
 	reader, err := gitHubUtils.zip.OpenReader(archive)
+	defer reader.Close()
 	if err != nil {
 		return err
 	}

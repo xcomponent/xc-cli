@@ -239,7 +239,10 @@ var _ = Describe("Init", func() {
 
 			BeforeEach(func() {
 				zipFake.OpenReaderStub = func(name string) (*zip.ReadCloser, error) {
-					return nil, zipErr
+					// Opens a reader so the defered close may be called without panicking
+					reader, _ := zip.OpenReader(name)
+
+					return reader, zipErr
 				}
 			})
 
