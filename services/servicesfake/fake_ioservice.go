@@ -24,6 +24,19 @@ type FakeIoService struct {
 		result1 int64
 		result2 error
 	}
+	ReadDirStub        func(dirname string) ([]os.FileInfo, error)
+	readDirMutex       sync.RWMutex
+	readDirArgsForCall []struct {
+		dirname string
+	}
+	readDirReturns struct {
+		result1 []os.FileInfo
+		result2 error
+	}
+	readDirReturnsOnCall map[int]struct {
+		result1 []os.FileInfo
+		result2 error
+	}
 	ReadFileStub        func(filename string) ([]byte, error)
 	readFileMutex       sync.RWMutex
 	readFileArgsForCall []struct {
@@ -116,6 +129,57 @@ func (fake *FakeIoService) CopyReturnsOnCall(i int, result1 int64, result2 error
 	}
 	fake.copyReturnsOnCall[i] = struct {
 		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeIoService) ReadDir(dirname string) ([]os.FileInfo, error) {
+	fake.readDirMutex.Lock()
+	ret, specificReturn := fake.readDirReturnsOnCall[len(fake.readDirArgsForCall)]
+	fake.readDirArgsForCall = append(fake.readDirArgsForCall, struct {
+		dirname string
+	}{dirname})
+	fake.recordInvocation("ReadDir", []interface{}{dirname})
+	fake.readDirMutex.Unlock()
+	if fake.ReadDirStub != nil {
+		return fake.ReadDirStub(dirname)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.readDirReturns.result1, fake.readDirReturns.result2
+}
+
+func (fake *FakeIoService) ReadDirCallCount() int {
+	fake.readDirMutex.RLock()
+	defer fake.readDirMutex.RUnlock()
+	return len(fake.readDirArgsForCall)
+}
+
+func (fake *FakeIoService) ReadDirArgsForCall(i int) string {
+	fake.readDirMutex.RLock()
+	defer fake.readDirMutex.RUnlock()
+	return fake.readDirArgsForCall[i].dirname
+}
+
+func (fake *FakeIoService) ReadDirReturns(result1 []os.FileInfo, result2 error) {
+	fake.ReadDirStub = nil
+	fake.readDirReturns = struct {
+		result1 []os.FileInfo
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeIoService) ReadDirReturnsOnCall(i int, result1 []os.FileInfo, result2 error) {
+	fake.ReadDirStub = nil
+	if fake.readDirReturnsOnCall == nil {
+		fake.readDirReturnsOnCall = make(map[int]struct {
+			result1 []os.FileInfo
+			result2 error
+		})
+	}
+	fake.readDirReturnsOnCall[i] = struct {
+		result1 []os.FileInfo
 		result2 error
 	}{result1, result2}
 }
@@ -283,6 +347,8 @@ func (fake *FakeIoService) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.copyMutex.RLock()
 	defer fake.copyMutex.RUnlock()
+	fake.readDirMutex.RLock()
+	defer fake.readDirMutex.RUnlock()
 	fake.readFileMutex.RLock()
 	defer fake.readFileMutex.RUnlock()
 	fake.tempDirMutex.RLock()

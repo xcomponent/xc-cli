@@ -15,16 +15,21 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "XC CLI"
 	app.Usage = "XComponent Command Line Interface"
-	app.Version = "0.3.0"
+	app.Version = "0.5.0"
 
-	app.Commands = commands.GetCommands(
-		services.NewOsService(),
-		services.NewHttpService(new(HttpShim)),
-		services.NewIoService(),
-		services.NewZipService(new(ZipShim)),
-		services.NewExecService(&execshim.ExecShim{}))
+	workDir, err := os.Getwd()
+	if err == err {
+		app.Commands = commands.GetCommands(
+			workDir,
+			services.NewOsService(),
+			services.NewHttpService(new(HttpShim)),
+			services.NewIoService(),
+			services.NewZipService(new(ZipShim)),
+			services.NewExecService(&execshim.ExecShim{}))
 
-	err := app.Run(os.Args)
+		err = app.Run(os.Args)
+	}
+
 	if err != nil {
 		fmt.Printf("Error : %s\n", err)
 		os.Exit(1)

@@ -4,6 +4,7 @@ import (
 	"github.com/urfave/cli"
 	"github.com/xcomponent/xc-cli/services"
 	"strings"
+	"github.com/xcomponent/xc-cli/util"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 	addTemplatesGithubOrg     = "xcomponent-add-templates"
 )
 
-func GetCommands(os services.OsService, http services.HttpService, io services.IoService, zip services.ZipService,
+func GetCommands(workDir string, os services.OsService, http services.HttpService, io services.IoService, zip services.ZipService,
 	exec services.ExecService) []cli.Command {
 	return []cli.Command{
 		GetCliCommand(os, http, io, exec),
@@ -49,12 +50,9 @@ func GetCommands(os services.OsService, http services.HttpService, io services.I
 					}
 				}
 
-				workDir, err := os.Getwd()
-				if err != nil {
-					return err
-				}
+				command := NewInitCommand(http, io, os, zip)
 
-				return NewInitCommand(http, io, os, zip).Init(workDir, githubOrg, templateName, c.String("project-name"))
+				return command.Init(workDir, githubOrg, templateName, c.String("project-name"))
 			},
 		},
 		{
@@ -75,13 +73,28 @@ func GetCommands(os services.OsService, http services.HttpService, io services.I
 					return nil
 				}
 
-				workDir, err := os.Getwd()
-				if err != nil {
-					return err
+				command := NewAddCommand(os, http, io, zip)
+
+				return command.Execute(workDir, c.String("element-type"), c.Args().Get(0),
+					addTemplatesGithubOrg)
+			},
+		},
+		{
+			Name:      "rename-project",
+			Usage:     "Rename the current project name",
+			ArgsUsage: " NEW-PROJECT-NAME",
+			Action: func(c *cli.Context) error {
+				if len(c.Args()) != 1 {
+					cli.ShowCommandHelp(c, "rename-project")
+
+					os.Exit(1)
+					return nil
 				}
 
-				return NewAddCommand(os, http, io, zip).Execute(workDir, c.String("element-type"), c.Args().Get(0),
-					addTemplatesGithubOrg)
+				command := NewRenameProjectCommand(io, os, util.NewFileUtils(os, io))
+
+				return command.Execute(
+					workDir, c.Args().Get(0));
 			},
 		},
 	}
