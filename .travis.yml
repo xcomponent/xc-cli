@@ -14,3 +14,7 @@ script:
   - ginkgo commands --failOnPending --cover --trace -coverpkg=commands
   - gox -os="linux windows darwin" -arch="386 amd64" -output=dist/{{.Dir}}_{{.OS}}_{{.Arch}}
   - goveralls -service=travis-ci
+
+env:
+  global:
+    - TMPDIR=/tmp

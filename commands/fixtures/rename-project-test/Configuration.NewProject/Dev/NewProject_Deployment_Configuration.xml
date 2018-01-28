@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<deployment environment="Dev" version="" debugType="Debug" frameworkType="Framework452" visualstudioVersion="VS2013" defaultExportPath="" extractConfig="false" generateWebSocketApi="false" embedUserObjects="false" defaultDeployPath="" logsDirectory="$(installdir)" logsPattern="pid-${processid}-${component}-${shortdate}" runtimesLogs="True" logsLevel="TRACE" logsMaxSize="50" reactiveApiName="" reactiveApiVersion="">
+  <!--
+	THREADING IMPLEMENTATION VALUES = AKKA - ->
+	<!- - THREADING TYPE VALUES = ONEBYSTM, ONEBYINSTANCE, INHERITFROMPARENT, INHERITFROMLINKING - ->
+	<!- - SERIALIZATION TYPE VALUES = BINARY, XML, JSON - ->
+	<!- - MESSAGE QUEUE VALUES = ONEBYSTM, ONEBYINSTANCE, INHERITFROMPARENT-->
+  <buildEvents>
+    <preBuildEvent></preBuildEvent>
+    <postBuildEvent></postBuildEvent>
+    <exportFolders />
+    <exportRuntimeFolders />
+  </buildEvents>
+  <clientAPIs>
+    <clientAPI name="NewProjectApi" messageQueue="INHERITFROMPARENT" />
+  </clientAPIs>
+  <configuration serialization="Json">
+    <gateways>
+      <websocket name="" host="" port="0" bridgeport="0" type="Plain" user="" password="">
+        <loggedTopics><![CDATA[]]></loggedTopics>
+      </websocket>
+    </gateways>
+  </configuration>
+</deployment>

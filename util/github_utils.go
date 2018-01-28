@@ -82,7 +82,9 @@ func (gitHubUtils *GitHubUtils) unzip(archive string, target string) error {
 	fmt.Println(fmt.Sprintf("Extracting template from %s", archive))
 
 	reader, err := gitHubUtils.zip.OpenReader(archive)
-	defer reader.Close()
+	if reader != nil {
+		defer reader.Close()
+	}
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,7 @@ import (
 //go:generate counterfeiter -o servicesfake/fake_ioservice.go . IoService
 type IoService interface {
 	Copy(dst io.Writer, src io.Reader) (written int64, err error)
+	ReadDir(dirname string) ([]os.FileInfo, error)
 	ReadFile(filename string) ([]byte, error)
 	TempDir(dir, prefix string) (name string, err error)
 	WriteFile(filename string, data []byte, perm os.FileMode) error
@@ -22,6 +23,10 @@ type IoServiceImpl struct{}
 
 func (ioService *IoServiceImpl) Copy(dst io.Writer, src io.Reader) (written int64, err error) {
 	return io.Copy(dst, src)
+}
+
+func (ioService *IoServiceImpl) ReadDir(dirname string) ([]os.FileInfo, error) {
+	return ioutil.ReadDir(dirname)
 }
 
 func (ioService *IoServiceImpl) ReadFile(filename string) ([]byte, error) {
