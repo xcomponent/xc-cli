@@ -30,9 +30,11 @@ VERSION:
    0.2.0
 
 COMMANDS:
-     install  Install XComponent
-     init     Initialize a new XComponent project
-     help, h  Shows a list of commands or help for one command
+     install         Install XComponent
+     init            Initialize a new XComponent project
+     add             Add new element to the project
+     rename-project  Rename the current project name
+     help, h         Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --help, -h     show help
